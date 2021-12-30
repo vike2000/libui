@@ -1,0 +1,44 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"group": "build",
+			"label": "build",
+			"type": "shell", "command": "/opt/local/bin/ninja -C build",
+			"options": {"cwd": "${workspaceFolder}"},
+		},
+		{
+			"group": "build",
+			"label": "install",
+			"dependsOn": "build",
+			"type": "shell", "command": "/opt/local/bin/ninja -C build install",
+			"options": {"cwd": "${workspaceFolder}"},
+		},
+		{
+			"group": "build",
+			"label": "configure && build",
+			"dependsOrder": "sequence", "dependsOn": [
+				"configure",
+				"build",
+			],
+			"type": "shell", "command": "",
+			"options": {"cwd": "${workspaceFolder}"},
+		},
+		{
+			"group": "build",
+			"label": "configure && install",
+			"dependsOrder": "sequence", "dependsOn": [
+				"configure",
+				"install",
+			],
+			"type": "shell", "command": "",
+			"options": {"cwd": "${workspaceFolder}"},
+		},
+		{
+			"group": "build",
+			"label": "configure",
+			"type": "shell", "command": "NINJA=/opt/local/bin/ninja /opt/local/bin/meson setup --wipe build",
+			"options": {"cwd": "${workspaceFolder}"},
+		},
+	]
+}
