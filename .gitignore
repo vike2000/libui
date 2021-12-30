@@ -1,0 +1,5 @@
+/build
+/.cache
+# until further - I now use libui via docker in another repo (using libui)
+/.dockerignore
+/.docker
