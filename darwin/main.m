@@ -90,7 +90,7 @@ static BOOL stepsIsRunning;
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)app
 {
 	// for debugging
-	NSLog(@"in applicationShouldTerminate:");
+//	NSLog(@"in applicationShouldTerminate:");
 	if (uiprivShouldQuit()) {
 		canQuit = YES;
 		// this will call terminate:, which is the same as uiQuit()
