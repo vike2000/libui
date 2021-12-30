@@ -104,6 +104,11 @@ void uiDrawPathEnd(uiDrawPath *p)
 	p->ended = TRUE;
 }
 
+int uiDrawPathEnded(uiDrawPath *p)
+{
+	return p->ended;
+}
+
 uiDrawContext *uiprivDrawNewContext(CGContextRef ctxt, CGFloat height)
 {
 	uiDrawContext *c;

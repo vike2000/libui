@@ -138,6 +138,11 @@ void uiDrawPathEnd(uiDrawPath *p)
 	p->ended = TRUE;
 }
 
+int uiDrawPathEnded(uiDrawPath *p)
+{
+	return p->ended;
+}
+
 void uiprivRunPath(uiDrawPath *p, cairo_t *cr)
 {
 	guint i;

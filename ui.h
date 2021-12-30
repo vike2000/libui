@@ -474,6 +474,8 @@ _UI_EXTERN void uiDrawPathCloseFigure(uiDrawPath *p);
 _UI_EXTERN void uiDrawPathAddRectangle(uiDrawPath *p, double x, double y, double width, double height);
 
 _UI_EXTERN void uiDrawPathEnd(uiDrawPath *p);
+_UI_EXTERN int uiDrawPathEnded(uiDrawPath *p);
+#define LIBUI_HAS_DRAW_PATH_ENDED
 
 _UI_EXTERN void uiDrawStroke(uiDrawContext *c, uiDrawPath *path, uiDrawBrush *b, uiDrawStrokeParams *p);
 _UI_EXTERN void uiDrawFill(uiDrawContext *c, uiDrawPath *path, uiDrawBrush *b);
