@@ -143,6 +143,132 @@ int uiDrawPathEnded(uiDrawPath *p)
 	return p->ended;
 }
 
+struct uiprivDrawPathForEachInfo {
+	uiDrawPathForEachFunction f;
+	void *arg;
+	uiForEach r; // might aswell sync w/ darwin impl
+};
+
+void uiDrawPathForEach(uiDrawPath *p, uiDrawPathForEachFunction forEach, void *arg)
+{
+	guint i;
+	struct piece *piece;
+
+	struct uiprivDrawPathForEachInfo info = {forEach, arg, uiForEachContinue};
+	struct uiDrawPathItem item = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+	for (i = 0; i < p->pieces->len; i++) {
+		piece = &g_array_index(p->pieces, struct piece, i);
+		switch (piece->type) {
+			case newFigure: {
+				item.Type = uiDrawPathItemTypeNewFigure;
+				item.X1 = piece->d[0];
+				item.Y1 = piece->d[1];
+				break;
+			}
+			case newFigureArc: {
+				item.Type = uiDrawPathItemTypeNewFigureArc;
+				item.X1 = piece->d[0];
+				item.Y1 = piece->d[1];
+				item.Radius	= piece->d[2];
+				item.Start	= piece->d[3];
+				item.Sweep	= piece->d[4];
+				break;
+			}
+			case arcTo: {
+				item.Type = uiDrawPathItemTypeNewFigure;
+				item.X1 = piece->d[0];
+				item.Y1 = piece->d[1];
+				item.Radius	= piece->d[2];
+				item.Start	= piece->d[3];
+				item.Sweep	= piece->d[4];
+				break;
+			}
+			case lineTo: {
+				item.Type = uiDrawPathItemTypeLineTo;
+				item.X1 = piece->d[0];
+				item.Y1 = piece->d[1];
+				break;
+			}
+			case bezierTo: {
+				item.Type = uiDrawPathItemTypeBezierTo;
+				item.X1 = piece->d[0];
+				item.Y1 = piece->d[1];
+				item.X2 = piece->d[2];
+				item.Y2 = piece->d[3];
+				item.X3 = piece->d[4];
+				item.Y3 = piece->d[5];
+				break;
+			}
+			case addRect: {
+				item.Type = uiDrawPathItemTypeRectangle;
+				item.X1 = piece->d[0];
+				item.Y1 = piece->d[1];
+				item.X2 = piece->d[2];
+				item.Y2 = piece->d[3];
+				break;
+			}
+			case closeFigure: {
+				item.Type = uiDrawPathItemTypeCloseFigure;
+				break;
+			}
+		}
+
+		info.r = info.f(item, info.arg);
+		if (info.r == uiForEachStop)
+			return;
+	}
+}
+
+// Mainly based on uiprivRunPath (and uiDrawNewPath)
+uiDrawPath *uiDrawPathCopyByTransform(uiDrawPath *p, uiDrawMatrix *m)
+{
+	uiDrawPath *r;
+	double x;
+
+	r = uiprivNew(uiDrawPath);
+	r->pieces = g_array_new(FALSE, TRUE, sizeof (struct piece));
+	r->fillMode = p->fillMode;
+
+	guint i;
+	struct piece *src, dest;
+
+	for (i = 0; i < p->pieces->len; i++) {
+		src = &g_array_index(p->pieces, struct piece, i);
+		memcpy(&dest, src, sizeof (struct piece));
+		switch (src->type) {
+		case newFigure:
+			uiDrawMatrixTransformPoint(m, &dest.d[0], &dest.d[1]);
+			break;
+		case newFigureArc:
+			// fall through
+		case arcTo:
+			x = dest.d[0];
+			uiDrawMatrixTransformSize(m, &x, &dest.d[2]);
+			uiDrawMatrixTransformPoint(m, &dest.d[0], &dest.d[1]);
+			break;
+		case lineTo:
+			uiDrawMatrixTransformPoint(m, &dest.d[0], &dest.d[1]);
+			uiDrawMatrixTransformPoint(m, &x, &dest.d[2]);
+			break;
+		case bezierTo:
+			uiDrawMatrixTransformPoint(m, &dest.d[0], &dest.d[1]);
+			uiDrawMatrixTransformPoint(m, &dest.d[2], &dest.d[3]);
+			uiDrawMatrixTransformPoint(m, &dest.d[4], &dest.d[5]);
+			break;
+		case closeFigure:
+			break;
+		case addRect:
+			uiDrawMatrixTransformPoint(m, &dest.d[0], &dest.d[1]);
+			uiDrawMatrixTransformSize(m, &dest.d[2], &dest.d[3]);
+			break;
+		}
+		add(r, &dest);
+	}
+	r->ended = p->ended;
+	return r;
+}
+
 void uiprivRunPath(uiDrawPath *p, cairo_t *cr)
 {
 	guint i;

@@ -22,6 +22,43 @@ static void d2m(D2D1_MATRIX_3X2_F *d, uiDrawMatrix *m)
 	m->M32 = d->_32;
 }
 
+// Mostly copied from uiDrawNewPath but otherwise written blindly (on darwin)
+uiDrawPath *uiDrawPathCopyByTransform(uiDrawPath *p, uiDrawMatrix *m)
+{
+	D2D1_MATRIX_3X2_F dm;
+	uiDrawPath *r;
+	HRESULT hr;
+
+	m2d(m, &dm);
+
+	r = uiprivNew(uiDrawPath);
+	hr = d2dfactory->CreateTransformedGeometry(
+		&(p->path),
+		&dm,
+		&(r->path)
+	); // Written blindly and probably faulty in pointer-ness.
+	// Also note ther are two versions (depending on Windows version):
+	// https://docs.microsoft.com/en-us/windows/win32/api/d2d1/nf-d2d1-id2d1factory-createtransformedgeometry(id2d1geometry_constd2d1_matrix_3x2_f_id2d1transformedgeometry)
+	// https://docs.microsoft.com/en-us/windows/win32/api/d2d1/nf-d2d1-id2d1factory-createtransformedgeometry(id2d1geometry_constd2d1_matrix_3x2_f__id2d1transformedgeometry)
+	if (hr != S_OK)
+		logHRESULT(L"error creating path", hr);
+	hr = r->path->Open(&(r->sink));
+	if (hr != S_OK)
+		logHRESULT(L"error opening path", hr);
+	switch (p->sink->GetFillMode()) { // Written blindly
+	case uiDrawFillModeWinding:
+		r->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
+		break;
+	case uiDrawFillModeAlternate:
+		r->sink->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
+		break;
+	}
+	// Written blindly
+	if (p->sink == NULL)
+		uiDrawPathEnd(r);
+	return r;
+}
+
 void uiDrawMatrixTranslate(uiDrawMatrix *m, double x, double y)
 {
 	D2D1_MATRIX_3X2_F dm;

@@ -398,6 +398,39 @@ _UI_ENUM(uiDrawFillMode) {
 	uiDrawFillModeAlternate,
 };
 
+_UI_ENUM(uiDrawPathItemType) {
+	uiDrawPathItemTypeNewFigure,
+	uiDrawPathItemTypeLineTo,
+	uiDrawPathItemTypeNewFigureArc, // unix, not darwin, not windows
+	uiDrawPathItemTypeArc, // unix, not darwin, not windows
+	uiDrawPathItemTypeRectangle, // unix, not darwin, not windows
+	uiDrawPathItemTypeQuadraticCurveTo, // darwin, not windows, unix to be established
+	uiDrawPathItemTypeBezierTo,
+	uiDrawPathItemTypeFillMode, // not darwin, windows, unix tbe // item data tbd
+	uiDrawPathItemTypeSegmentFlags, // not darwin, windows, unix tbe // item data tbd
+	uiDrawPathItemTypeCloseFigure,
+	uiDrawPathItemTypeEnd, // not darwin, windows, unix tbe
+};
+
+struct uiDrawPathItem {
+	uiDrawPathItemType Type;
+	double X1;
+	double Y1;
+	double X2;
+	double Y2;
+	double X3;
+	double Y3;
+	double Radius;
+	double Start;
+	double Sweep;
+};
+
+typedef struct uiDrawPathItem uiDrawPathItem;
+
+typedef uiForEach (*uiDrawPathForEachFunction)(struct uiDrawPathItem, void *);
+_UI_EXTERN void uiDrawPathForEach(uiDrawPath *p, uiDrawPathForEachFunction forEach, void *arg);
+#define LIBUI_HAS_DRAW_PATH_FOR_EACH
+
 struct uiDrawMatrix {
 	double M11;
 	double M12;
@@ -476,6 +509,9 @@ _UI_EXTERN void uiDrawPathAddRectangle(uiDrawPath *p, double x, double y, double
 _UI_EXTERN void uiDrawPathEnd(uiDrawPath *p);
 _UI_EXTERN int uiDrawPathEnded(uiDrawPath *p);
 #define LIBUI_HAS_DRAW_PATH_ENDED
+
+_UI_EXTERN uiDrawPath *uiDrawPathCopyByTransform(uiDrawPath *p, uiDrawMatrix *m);
+#define LIBUI_HAS_DRAW_PATH_COPY_BY_TRANSFORM
 
 _UI_EXTERN void uiDrawStroke(uiDrawContext *c, uiDrawPath *path, uiDrawBrush *b, uiDrawStrokeParams *p);
 _UI_EXTERN void uiDrawFill(uiDrawContext *c, uiDrawPath *path, uiDrawBrush *b);

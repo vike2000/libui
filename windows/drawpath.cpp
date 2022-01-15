@@ -244,6 +244,8 @@ int uiDrawPathEnded(uiDrawPath *p)
 	return p->sink == NULL;
 }
 
+// windows entrypoint: https://docs.microsoft.com/en-us/windows/win32/direct2d/how-to-use-id2d1simplified-geometrysink?redirectedfrom=MSDN
+
 ID2D1PathGeometry *pathGeometry(uiDrawPath *p)
 {
 	if (p->sink != NULL)

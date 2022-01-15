@@ -1,4 +1,5 @@
 // 6 september 2015
+#include "../ui.h"
 #import "uipriv_darwin.h"
 #import "draw.h"
 
@@ -107,6 +108,67 @@ void uiDrawPathEnd(uiDrawPath *p)
 int uiDrawPathEnded(uiDrawPath *p)
 {
 	return p->ended;
+}
+
+struct uiprivDrawPathForEachInfo {
+	uiDrawPathForEachFunction f;
+	void *arg;
+	uiForEach r;
+};
+
+void uiprivDrawPathForEach(void *info, const CGPathElement *element)
+{
+	struct uiprivDrawPathForEachInfo *i = (struct uiprivDrawPathForEachInfo *) info;
+	struct uiDrawPathItem item = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+	if (i->r == uiForEachStop)
+		return;
+
+	switch (element->type) {
+		case kCGPathElementMoveToPoint: {
+			item.Type = uiDrawPathItemTypeNewFigure;
+			item.X1 = element->points[0].x;
+			item.Y1 = element->points[0].y;
+			break;
+		}
+		case kCGPathElementAddLineToPoint: {
+			item.Type = uiDrawPathItemTypeLineTo;
+			item.X1 = element->points[0].x;
+			item.Y1 = element->points[0].y;
+			break;
+		}
+		case kCGPathElementAddQuadCurveToPoint: {
+			item.Type = uiDrawPathItemTypeQuadraticCurveTo;
+			item.X1 = element->points[0].x;
+			item.Y1 = element->points[0].y;
+			item.X2 = element->points[1].x;
+			item.Y2 = element->points[1].y;
+			break;
+		}
+		case kCGPathElementAddCurveToPoint: {
+			item.Type = uiDrawPathItemTypeBezierTo;
+			item.X1 = element->points[0].x;
+			item.Y1 = element->points[0].y;
+			item.X2 = element->points[1].x;
+			item.Y2 = element->points[1].y;
+			item.X3 = element->points[2].x;
+			item.Y3 = element->points[2].y;
+			break;
+		}
+		case kCGPathElementCloseSubpath: {
+			item.Type = uiDrawPathItemTypeCloseFigure;
+			break;
+		}
+	}
+
+	i->r = i->f(item, i->arg);
+}
+
+void uiDrawPathForEach(uiDrawPath *p, uiDrawPathForEachFunction forEach, void *arg)
+{
+	struct uiprivDrawPathForEachInfo i = {forEach, arg, uiForEachContinue};
+
+	CGPathApply(p->path, &i, uiprivDrawPathForEach);
 }
 
 uiDrawContext *uiprivDrawNewContext(CGContextRef ctxt, CGFloat height)
@@ -417,6 +479,20 @@ void uiDrawMatrixTransformSize(uiDrawMatrix *m, double *x, double *y)
 	s = CGSizeApplyAffineTransform(CGSizeMake(*x, *y), c);
 	*x = s.width;
 	*y = s.height;
+}
+
+uiDrawPath *uiDrawPathCopyByTransform(uiDrawPath *p, uiDrawMatrix *m)
+{
+	CGAffineTransform c;
+	uiDrawPath *r;
+
+	r = uiprivNew(uiDrawPath);
+	r->fillMode = p->fillMode;
+	r->ended = p->ended;
+	
+	m2c(m, &c);
+	r->path = CGPathCreateMutableCopyByTransformingPath(p->path, &c);
+	return r;
 }
 
 void uiDrawTransform(uiDrawContext *c, uiDrawMatrix *m)
