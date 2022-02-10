@@ -381,11 +381,18 @@ void uiDrawStroke(uiDrawContext *c, uiDrawPath *p, uiDrawBrush *b, uiDrawStrokeP
 		uiprivFree(dashes);
 
 	cliplayer = applyClip(c);
-	c->rt->DrawGeometry(
-		pathGeometry(p),
-		brush,
-		sp->Thickness,
-		style);
+	if (transformedPathGeometry(p))
+		c->rt->DrawGeometry(
+			transformedPathGeometry(p),
+			brush,
+			sp->Thickness,
+			style);
+	else
+		c->rt->DrawGeometry(
+			pathGeometry(p),
+			brush,
+			sp->Thickness,
+			style);
 	unapplyClip(c, cliplayer);
 
 	style->Release();

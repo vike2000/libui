@@ -1,16 +1,9 @@
 // 7 september 2015
-#include "uipriv_windows.hpp"
-#include "draw.hpp"
+#include "drawpath.hpp"
 
 // TODO
 // - write a test for transform followed by clip and clip followed by transform to make sure they work the same as on gtk+ and cocoa
 // - write a test for nested transforms for gtk+
-
-struct uiDrawPath {
-	ID2D1PathGeometry *path;
-	ID2D1GeometrySink *sink;
-	BOOL inFigure;
-};
 
 uiDrawPath *uiDrawNewPath(uiDrawFillMode fillmode)
 {
@@ -26,9 +19,11 @@ uiDrawPath *uiDrawNewPath(uiDrawFillMode fillmode)
 		logHRESULT(L"error opening path", hr);
 	switch (fillmode) {
 	case uiDrawFillModeWinding:
+		p->fillMode = D2D1_FILL_MODE_WINDING;
 		p->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 		break;
 	case uiDrawFillModeAlternate:
+		p->fillMode = D2D1_FILL_MODE_ALTERNATE;
 		p->sink->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
 		break;
 	}
@@ -251,4 +246,11 @@ ID2D1PathGeometry *pathGeometry(uiDrawPath *p)
 	if (p->sink != NULL)
 		uiprivUserBug("You cannot draw with a uiDrawPath that was not ended. (path: %p)", p);
 	return p->path;
+}
+
+ID2D1TransformedGeometry *transformedPathGeometry(uiDrawPath *p)
+{
+	if (p->sink != NULL)
+		uiprivUserBug("You cannot draw with a uiDrawPath that was not ended. (path: %p)", p);
+	return p->transformedPath;
 }

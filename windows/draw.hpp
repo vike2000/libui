@@ -13,6 +13,7 @@ struct uiDrawContext {
 
 // drawpath.cpp
 extern ID2D1PathGeometry *pathGeometry(uiDrawPath *p);
+extern ID2D1TransformedGeometry *transformedPathGeometry(uiDrawPath *p);
 
 // drawmatrix.cpp
 extern void m2d(uiDrawMatrix *m, D2D1_MATRIX_3X2_F *d);
