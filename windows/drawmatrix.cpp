@@ -21,7 +21,7 @@ static void d2m(D2D1_MATRIX_3X2_F *d, uiDrawMatrix *m)
 	m->M32 = d->_32;
 }
 
-// Mostly copied from uiDrawNewPath
+// Originally copied from uiDrawNewPath
 uiDrawPath *uiDrawPathCopyByTransform(uiDrawPath *p, uiDrawMatrix *m)
 {
 	D2D1_MATRIX_3X2_F dm;
@@ -29,6 +29,9 @@ uiDrawPath *uiDrawPathCopyByTransform(uiDrawPath *p, uiDrawMatrix *m)
 	HRESULT hr;
 
 	m2d(m, &dm);
+	// The next is insane, but it's what it took to get my graphics similar (but not exact, afaics) to cocoa (gtk+ to be re-confirmed) 2022-03-21
+	dm._31 = dm._31*1.5;
+	dm._32 = -dm._32*2;
 
 	r = uiprivNew(uiDrawPath);
 	hr = d2dfactory->CreateTransformedGeometry(
@@ -36,18 +39,9 @@ uiDrawPath *uiDrawPathCopyByTransform(uiDrawPath *p, uiDrawMatrix *m)
 		&dm,
 		&(r->transformedPath)
 	);
-	// Note there are two versions (possibly depending on Windows version):
-	// https://docs.microsoft.com/en-us/windows/win32/api/d2d1/nf-d2d1-id2d1factory-createtransformedgeometry(id2d1geometry_constd2d1_matrix_3x2_f_id2d1transformedgeometry)
-	// https://docs.microsoft.com/en-us/windows/win32/api/d2d1/nf-d2d1-id2d1factory-createtransformedgeometry(id2d1geometry_constd2d1_matrix_3x2_f__id2d1transformedgeometry)
 	if (hr != S_OK)
 		logHRESULT(L"error creating path", hr);
-	hr = r->path->Open(&(r->sink));
-	if (hr != S_OK)
-		logHRESULT(L"error opening path", hr);
-	r->sink->SetFillMode(p->fillMode);
-	// Written blindly
-	if (p->sink == NULL)
-		uiDrawPathEnd(r);
+	// ID2D1TransformedGeometry has no ->Open(&r->sink), so there's no way to do r->sink->SetFillMode(p->fillMode) (nor uiDrawPathEnd if null)
 	return r;
 }
 

@@ -37,7 +37,10 @@ void uiDrawFreePath(uiDrawPath *p)
 	if (p->sink != NULL)
 		// TODO close sink first?
 		p->sink->Release();
-	p->path->Release();
+	if (p->path)
+		p->path->Release();
+	if (p->transformedPath)
+		p->transformedPath->Release();
 	uiprivFree(p);
 }
 
