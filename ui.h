@@ -432,12 +432,12 @@ _UI_EXTERN void uiDrawPathForEach(uiDrawPath *p, uiDrawPathForEachFunction forEa
 #define LIBUI_HAS_DRAW_PATH_FOR_EACH
 
 struct uiDrawMatrix {
-	double M11;
-	double M12;
-	double M21;
-	double M22;
-	double M31;
-	double M32;
+	double M11; //		xx
+	double M12; //	yx
+	double M21; //			xy
+	double M22; //		yy
+	double M31; //				tx
+	double M32; //			ty
 };
 
 struct uiDrawBrush {
