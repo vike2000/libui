@@ -2,20 +2,21 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"group": "build",
 			"label": "build",
 			"type": "shell", "command": "ninja -C build && ninja -v -C build -t compdb >build/compile_commands-tmp.json && mv build/compile_commands{-tmp,}.json || rm build/compile_commands-tmp.json",
 			"options": {"cwd": "${workspaceFolder}"},
+			"group": "build",
 		},
 		{
-			"group": "build",
 			"label": "install",
-			"dependsOn": "build",
+			"dependsOrder": "sequence", "dependsOn": [
+				"build",
+			],
 			"type": "shell", "command": "sudo ninja -C build install", // sudo cause-of devcontainer non-root user setup
 			"options": {"cwd": "${workspaceFolder}"},
+			"group": "build",
 		},
 		{
-			"group": "build",
 			"label": "configure && build",
 			"dependsOrder": "sequence", "dependsOn": [
 				"configure",
@@ -23,9 +24,9 @@
 			],
 			"type": "shell", "command": "",
 			"options": {"cwd": "${workspaceFolder}"},
+			"group": "build",
 		},
 		{
-			"group": "build",
 			"label": "configure && install",
 			"dependsOrder": "sequence", "dependsOn": [
 				"configure",
@@ -33,52 +34,56 @@
 			],
 			"type": "shell", "command": "",
 			"options": {"cwd": "${workspaceFolder}"},
+			"group": "build",
 		},
 		{
-			"group": "build",
 			"label": "configure",
 			"type": "shell", "command": "meson setup --wipe build",
 			"options": {"cwd": "${workspaceFolder}"},
+			"group": "build",
 		},
 		
 		{
-			"group": "build",
 			"label": "build with macports",
 			"type": "shell", "command": "/opt/local/bin/ninja -C build && /opt/local/bin/ninja -v -C build -t compdb >build/compile_commands-tmp.json && mv build/compile_commands{-tmp,}.json || rm build/compile_commands-tmp.json",
 			"options": {"cwd": "${workspaceFolder}"},
+			"group": "build",
 		},
 		{
-			"group": "build",
 			"label": "install with macports",
-			"dependsOn": "build",
+			"dependsOrder": "sequence", "dependsOn": [
+				"build with macports",
+			],
 			"type": "shell", "command": "/opt/local/bin/ninja -C build install",
 			"options": {"cwd": "${workspaceFolder}"},
+			"group": "build",
 		},
 		{
-			"group": "build",
 			"label": "configure && build with macports",
 			"dependsOrder": "sequence", "dependsOn": [
-				"configure",
-				"build",
+				"configure with macports",
+				"build with macports",
 			],
 			"type": "shell", "command": "",
 			"options": {"cwd": "${workspaceFolder}"},
+			"group": "build",
 		},
 		{
-			"group": "build",
-			"label": "configure && install with macports",
+			"label": "configure && build && install with macports",
 			"dependsOrder": "sequence", "dependsOn": [
-				"configure",
-				"install",
+				"configure with macports",
+				"build with macports",
+				"install with macports",
 			],
 			"type": "shell", "command": "",
 			"options": {"cwd": "${workspaceFolder}"},
+			"group": "build",
 		},
 		{
-			"group": "build",
 			"label": "configure with macports",
 			"type": "shell", "command": "NINJA=/opt/local/bin/ninja /opt/local/bin/meson setup --wipe build",
 			"options": {"cwd": "${workspaceFolder}"},
+			"group": "build",
 		},
 	]
 }
