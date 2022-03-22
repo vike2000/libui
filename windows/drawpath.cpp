@@ -239,7 +239,160 @@ int uiDrawPathEnded(uiDrawPath *p)
 	return p->sink == NULL;
 }
 
-// windows entrypoint: https://docs.microsoft.com/en-us/windows/win32/direct2d/how-to-use-id2d1simplified-geometrysink?redirectedfrom=MSDN
+struct uiprivDrawPathForEachInfo {
+	uiDrawPathForEachFunction f;
+	void *arg;
+	uiForEach r; // might aswell sync w/ darwin impl
+};
+
+// model https://docs.microsoft.com/en-us/windows/win32/direct2d/how-to-use-id2d1simplified-geometrysink?redirectedfrom=MSDN
+class uiprivDrawPathForEachSink : public ID2D1SimplifiedGeometrySink
+{
+		UINT _refCount = 1;
+		struct uiprivDrawPathForEachInfo _info; // = {forEach, arg, uiForEachContinue};
+	public:
+		uiprivDrawPathForEachSink(struct uiprivDrawPathForEachInfo info) : _info(info) {}
+
+		STDMETHOD_(void, AddBeziers)(const D2D1_BEZIER_SEGMENT *beziers, UINT beziersCount)
+		{
+			for (UINT i = 0; i < beziersCount; ++i) {
+				if (_info.r == uiForEachStop)
+					return;
+				_info.r = _info.f({
+					uiDrawPathItemTypeBezierTo,
+					beziers[i].point1.x, beziers[i].point1.y,
+					beziers[i].point2.x, beziers[i].point2.y,
+					beziers[i].point3.x, beziers[i].point3.y,
+				}, _info.arg);
+			}
+		}
+
+		STDMETHOD_(void, AddLines)(const D2D1_POINT_2F *points, UINT pointsCount)
+		{
+			for (UINT i = 0; i < pointsCount; ++i) {
+				if (_info.r == uiForEachStop)
+					return;
+				_info.r = _info.f({
+					uiDrawPathItemTypeLineTo,
+					points[i].x, points[i].y
+				}, _info.arg);
+			}
+		}
+
+		STDMETHOD_(void, BeginFigure)(D2D1_POINT_2F point, D2D1_FIGURE_BEGIN figureBegin)
+		{
+			/* typedef enum D2D1_FIGURE_BEGIN {
+				D2D1_FIGURE_BEGIN_FILLED = 0,
+				D2D1_FIGURE_BEGIN_HOLLOW = 1,
+				D2D1_FIGURE_BEGIN_FORCE_DWORD = 0xffffffff
+			} */
+			if (_info.r == uiForEachStop)
+				return;
+			_info.r = _info.f({
+				uiDrawPathItemTypeNewFigure,
+				point.x, point.y
+			}, _info.arg);
+		}
+
+		STDMETHOD_(void, EndFigure)(D2D1_FIGURE_END figureEnd)
+		{
+			//uiDrawPathItemTypeEnd, // https://docs.microsoft.com/en-us/windows/win32/api/d2d1/ne-d2d1-d2d1_figure_end
+			/* typedef enum D2D1_FIGURE_END {
+				D2D1_FIGURE_END_OPEN = 0,
+				D2D1_FIGURE_END_CLOSED = 1,
+				D2D1_FIGURE_END_FORCE_DWORD = 0xffffffff
+			} */
+		}
+
+		STDMETHOD_(void, SetFillMode)(D2D1_FILL_MODE fillMode)
+		{
+			//uiDrawPathItemTypeFillMode // item data tbd
+			/* typedef enum D2D1_FILL_MODE {
+				D2D1_FILL_MODE_ALTERNATE = 0,
+				D2D1_FILL_MODE_WINDING = 1,
+				D2D1_FILL_MODE_FORCE_DWORD = 0xffffffff
+			} */
+		}
+		STDMETHOD_(void, SetSegmentFlags)(D2D1_PATH_SEGMENT vertexFlags)
+		{
+			//uiDrawPathItemTypeSegmentFlags // item data tbd
+			/* typedef enum D2D1_PATH_SEGMENT {
+				D2D1_PATH_SEGMENT_NONE = 0x00000000,
+				D2D1_PATH_SEGMENT_FORCE_UNSTROKED = 0x00000001,
+				D2D1_PATH_SEGMENT_FORCE_ROUND_LINE_JOIN = 0x00000002,
+				D2D1_PATH_SEGMENT_FORCE_DWORD = 0xffffffff
+			} */
+		}
+
+		STDMETHOD(Close)()
+		{
+			//uiDrawPathItemTypeCloseFigure
+			return S_OK;
+		}
+
+		STDMETHOD_(ULONG, Release)(THIS)
+		{
+			ULONG cRef = static_cast<ULONG>(
+			InterlockedDecrement(reinterpret_cast<LONG volatile *>(&_refCount)));
+			if(0 == cRef)
+				delete this;
+			return cRef;
+		}
+		STDMETHOD(QueryInterface)(THIS_ REFIID iid, void** ppvObject)
+		{
+			HRESULT hr = S_OK;
+			if (__uuidof(IUnknown) == iid) {
+				*ppvObject = static_cast<IUnknown*>(this);
+				AddRef();
+			} else if (__uuidof(ID2D1SimplifiedGeometrySink) == iid) {
+				*ppvObject = static_cast<ID2D1SimplifiedGeometrySink*>(this);
+				AddRef();
+			} else {
+				*ppvObject = NULL;
+				hr = E_NOINTERFACE;
+			}
+			return hr;
+		}
+		STDMETHOD_(ULONG, AddRef)(THIS)
+		{
+			return InterlockedIncrement(reinterpret_cast<LONG volatile *>(&_refCount));
+		}
+};
+
+void uiDrawPathForEach(uiDrawPath *p, uiDrawPathForEachFunction forEach, void *arg)
+{
+	struct uiprivDrawPathForEachInfo info = {forEach, arg, uiForEachContinue};
+
+	HRESULT hr;
+	uiprivDrawPathForEachSink *s = new uiprivDrawPathForEachSink(info);
+	if (!s)
+		hr = E_OUTOFMEMORY;
+	else {
+		// calling g->Simplify on common super-interface ID2D1Geometry *g assigned to ternary result (of p->transformedPath or p->path, depending on former) yields error C2446: ':': no conversion … and requires cl /Zc:ternary option, but possibly also c++17, and until verified/fixed in chain I'll do an if-else instead https://docs.microsoft.com/en-us/cpp/build/reference/zc-ternary
+		if (p->transformedPath) {
+			hr = p->transformedPath->Simplify(
+				D2D1_GEOMETRY_SIMPLIFICATION_OPTION_CUBICS_AND_LINES, // D2D1_GEOMETRY_SIMPLIFICATION_OPTION_LINES, // latter flattens
+				NULL, // D2D1_MATRIX_3X2_F [&] worldTransform
+				// (FLOAT)flatteningTolerance,
+				s
+			);
+		} else {
+			hr = p->path->Simplify(
+				D2D1_GEOMETRY_SIMPLIFICATION_OPTION_CUBICS_AND_LINES, // D2D1_GEOMETRY_SIMPLIFICATION_OPTION_LINES, // latter flattens
+				NULL, // D2D1_MATRIX_3X2_F [&] worldTransform
+				// (FLOAT)flatteningTolerance,
+				s
+			);
+		}
+
+		if (SUCCEEDED(hr))
+			hr = s->Close();
+
+		s->Release();
+	}
+}
+
+// see drawmatrix.cpp for uiDrawPathCopyByTransform
 
 ID2D1PathGeometry *pathGeometry(uiDrawPath *p)
 {
