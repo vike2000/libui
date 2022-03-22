@@ -81,7 +81,7 @@ struct arc {
 
 static void drawArc(uiDrawPath *p, struct arc *a, void (*startFunction)(uiDrawPath *, double, double))
 {
-	double sinx, cosx;
+	double sinX, cosX;
 	double startX, startY;
 	double endX, endY;
 	D2D1_ARC_SEGMENT as;
@@ -117,14 +117,14 @@ static void drawArc(uiDrawPath *p, struct arc *a, void (*startFunction)(uiDrawPa
 	// unfortunately D2D1SinCos() is only defined on Windows 8 and newer
 	// the MSDN page doesn't say this, but says it requires d2d1_1.h, which is listed as only supported on Windows 8 and newer elsewhere on MSDN
 	// so we must use sin() and cos() and hope it's right...
-	sinx = sin(a->startAngle);
-	cosx = cos(a->startAngle);
-	startX = a->xCenter + a->radius * cosx;
-	startY = a->yCenter + a->radius * sinx;
-	sinx = sin(a->startAngle + a->sweep);
-	cosx = cos(a->startAngle + a->sweep);
-	endX = a->xCenter + a->radius * cosx;
-	endY = a->yCenter + a->radius * sinx;
+	sinX = sin(a->startAngle);
+	cosX = cos(a->startAngle);
+	startX = a->xCenter + a->radius * cosX;
+	startY = a->yCenter + a->radius * sinX;
+	sinX = sin(a->startAngle + a->sweep);
+	cosX = cos(a->startAngle + a->sweep);
+	endX = a->xCenter + a->radius * cosX;
+	endY = a->yCenter + a->radius * sinX;
 
 	// now do the initial step to get the current point to be the start point
 	// this is either creating a new figure, drawing a line, or (in the case of our full circle code above) doing nothing
