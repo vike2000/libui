@@ -408,13 +408,13 @@ void uiDrawMatrixScale(uiDrawMatrix *m, double xCenter, double yCenter, double x
 	c2m(&c, m);
 }
 
-void uiDrawMatrixRotate(uiDrawMatrix *m, double x, double y, double amount)
+void uiDrawMatrixRotate(uiDrawMatrix *m, double x, double y, double radians)
 {
 	CGAffineTransform c;
 
 	m2c(m, &c);
 	c = CGAffineTransformTranslate(c, x, y);
-	c = CGAffineTransformRotate(c, amount);
+	c = CGAffineTransformRotate(c, radians);
 	c = CGAffineTransformTranslate(c, -x, -y);
 	c2m(&c, m);
 }

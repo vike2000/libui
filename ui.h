@@ -524,7 +524,7 @@ _UI_EXTERN void uiDrawFill(uiDrawContext *c, uiDrawPath *path, uiDrawBrush *b);
 _UI_EXTERN void uiDrawMatrixSetIdentity(uiDrawMatrix *m);
 _UI_EXTERN void uiDrawMatrixTranslate(uiDrawMatrix *m, double x, double y);
 _UI_EXTERN void uiDrawMatrixScale(uiDrawMatrix *m, double xCenter, double yCenter, double x, double y);
-_UI_EXTERN void uiDrawMatrixRotate(uiDrawMatrix *m, double x, double y, double amount);
+_UI_EXTERN void uiDrawMatrixRotate(uiDrawMatrix *m, double x, double y, double radians);
 _UI_EXTERN void uiDrawMatrixSkew(uiDrawMatrix *m, double x, double y, double xamount, double yamount);
 _UI_EXTERN void uiDrawMatrixMultiply(uiDrawMatrix *dest, uiDrawMatrix *src);
 _UI_EXTERN int uiDrawMatrixInvertible(uiDrawMatrix *m);

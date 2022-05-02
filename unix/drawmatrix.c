@@ -52,13 +52,13 @@ void uiDrawMatrixScale(uiDrawMatrix *m, double xCenter, double yCenter, double x
 	c2m(&c, m);
 }
 
-void uiDrawMatrixRotate(uiDrawMatrix *m, double x, double y, double amount)
+void uiDrawMatrixRotate(uiDrawMatrix *m, double x, double y, double radians)
 {
 	cairo_matrix_t c;
 
 	m2c(m, &c);
 	cairo_matrix_translate(&c, x, y);
-	cairo_matrix_rotate(&c, amount);
+	cairo_matrix_rotate(&c, radians);
 	cairo_matrix_translate(&c, -x, -y);
 	c2m(&c, m);
 }

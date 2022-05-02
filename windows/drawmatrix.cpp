@@ -68,7 +68,7 @@ void uiDrawMatrixScale(uiDrawMatrix *m, double xCenter, double yCenter, double x
 
 #define r2d(x) (x * (180.0 / uiPi))
 
-void uiDrawMatrixRotate(uiDrawMatrix *m, double x, double y, double amount)
+void uiDrawMatrixRotate(uiDrawMatrix *m, double x, double y, double radians)
 {
 	D2D1_MATRIX_3X2_F dm;
 	D2D1_POINT_2F center;
@@ -76,7 +76,7 @@ void uiDrawMatrixRotate(uiDrawMatrix *m, double x, double y, double amount)
 	m2d(m, &dm);
 	center.x = x;
 	center.y = y;
-	dm = dm * D2D1::Matrix3x2F::Rotation(r2d(amount), center);
+	dm = dm * D2D1::Matrix3x2F::Rotation(r2d(radians), center);
 	d2m(&dm, m);
 }
 
