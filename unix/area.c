@@ -203,6 +203,8 @@ static uiModifiers toModifiers(guint state)
 // capture on drag is done automatically on GTK+
 static void finishMouseEvent(uiArea *a, uiAreaMouseEvent *me, guint mb, gdouble x, gdouble y, guint state, GdkWindow *window)
 {
+	double delta;
+
 	// on GTK+, mouse buttons 4-7 are for scrolling; if we got here, that's a mistake
 	if (mb >= 4 && mb <= 7)
 		return;
@@ -234,7 +236,21 @@ static void finishMouseEvent(uiArea *a, uiAreaMouseEvent *me, guint mb, gdouble 
 
 	loadAreaSize(a, &(me->AreaWidth), &(me->AreaHeight));
 
-	(*(a->ah->MouseEvent))(a->ah, a, me);
+	// horizontal and vertical events are split on Windows, so we split the event into two here too
+	if (me->DeltaX) {
+		delta = me->DeltaY;
+		me->DeltaY = 0;
+		(*(a->ah->MouseEvent))(a->ah, a, me);
+		me->DeltaY = delta;
+	}
+	if (me->DeltaY) {
+		delta = me->DeltaX;
+		me->DeltaX = 0;
+		(*(a->ah->MouseEvent))(a->ah, a, me);
+		me->DeltaX = delta;
+	}
+	if (!me->DeltaX && !me->DeltaY)
+		(*(a->ah->MouseEvent))(a->ah, a, me);
 }
 
 static gboolean areaWidget_button_press_event(GtkWidget *w, GdkEventButton *e)
@@ -269,6 +285,9 @@ static gboolean areaWidget_button_press_event(GtkWidget *w, GdkEventButton *e)
 		e->time, maxTime,
 		maxDistance, maxDistance);
 
+	me.DeltaX = 0;
+	me.DeltaY = 0;
+
 	// and set things up for window drags
 	a->dragevent = e;
 	finishMouseEvent(a, &me, e->button, e->x, e->y, e->state, e->window);
@@ -285,6 +304,8 @@ static gboolean areaWidget_button_release_event(GtkWidget *w, GdkEventButton *e)
 	me.Down = 0;
 	me.Up = e->button;
 	me.Count = 0;
+	me.DeltaX = 0;
+	me.DeltaY = 0;
 	finishMouseEvent(a, &me, e->button, e->x, e->y, e->state, e->window);
 	return GDK_EVENT_PROPAGATE;
 }
@@ -298,7 +319,25 @@ static gboolean areaWidget_motion_notify_event(GtkWidget *w, GdkEventMotion *e)
 	me.Down = 0;
 	me.Up = 0;
 	me.Count = 0;
+	me.DeltaX = 0;
+	me.DeltaY = 0;
 	finishMouseEvent(a, &me, 0, e->x, e->y, e->state, e->window);
+	return GDK_EVENT_PROPAGATE;
+}
+
+static gboolean areaWidget_scroll_event(GtkWidget *w, GdkEventScroll *e)
+{
+	areaWidget *aw = areaWidget(w);
+	uiArea *a = aw->a;
+	uiAreaMouseEvent me;
+
+	me.Down = 0;
+	me.Up = 0;
+	me.Count = 0;
+	me.DeltaX = e->delta_x;
+	me.DeltaY = e->delta_y;
+	finishMouseEvent(a, &me, 0, e->x, e->y, e->state, e->window);
+	
 	return GDK_EVENT_PROPAGATE;
 }
 
@@ -480,6 +519,7 @@ static void areaWidget_class_init(areaWidgetClass *class)
 	GTK_WIDGET_CLASS(class)->button_press_event = areaWidget_button_press_event;
 	GTK_WIDGET_CLASS(class)->button_release_event = areaWidget_button_release_event;
 	GTK_WIDGET_CLASS(class)->motion_notify_event = areaWidget_motion_notify_event;
+	GTK_WIDGET_CLASS(class)->scroll_event = areaWidget_scroll_event;
 	GTK_WIDGET_CLASS(class)->enter_notify_event = areaWidget_enter_notify_event;
 	GTK_WIDGET_CLASS(class)->leave_notify_event = areaWidget_leave_notify_event;
 	GTK_WIDGET_CLASS(class)->key_press_event = areaWidget_key_press_event;

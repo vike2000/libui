@@ -94,13 +94,29 @@ struct uiArea {
 
 	m = 0;
 	mods = [e modifierFlags];
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
 	if ((mods & NSControlKeyMask) != 0)
+#else
+	if ((mods & NSEventModifierFlagControl) != 0)
+#endif
 		m |= uiModifierCtrl;
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
 	if ((mods & NSAlternateKeyMask) != 0)
+#else
+	if ((mods & NSEventModifierFlagOption) != 0)
+#endif
 		m |= uiModifierAlt;
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
 	if ((mods & NSShiftKeyMask) != 0)
+#else
+	if ((mods & NSEventModifierFlagShift) != 0)
+#endif
 		m |= uiModifierShift;
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
 	if ((mods & NSCommandKeyMask) != 0)
+#else
+	if ((mods & NSEventModifierFlagCommand) != 0)
+#endif
 		m |= uiModifierSuper;
 	return m;
 }
@@ -133,7 +149,8 @@ struct uiArea {
 	NSPoint point;
 	int buttonNumber;
 	NSUInteger pmb;
-	unsigned int i, max;
+	int i, max;
+	double delta;
 
 	// this will convert point to drawing space
 	// thanks swillits in irc.freenode.net/#macdev
@@ -158,24 +175,51 @@ struct uiArea {
 	me.Down = 0;
 	me.Up = 0;
 	me.Count = 0;
+	me.DeltaX = 0;
+	me.DeltaY = 0;
 	switch ([e type]) {
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
 	case NSLeftMouseDown:
 	case NSRightMouseDown:
 	case NSOtherMouseDown:
+#else
+	case NSEventTypeLeftMouseDown:
+	case NSEventTypeRightMouseDown:
+	case NSEventTypeOtherMouseDown:
+#endif
 		me.Down = buttonNumber;
 		me.Count = [e clickCount];
 		break;
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
 	case NSLeftMouseUp:
 	case NSRightMouseUp:
 	case NSOtherMouseUp:
+#else
+#endif
 		me.Up = buttonNumber;
 		break;
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
 	case NSLeftMouseDragged:
 	case NSRightMouseDragged:
 	case NSOtherMouseDragged:
+#else
+	case NSEventTypeLeftMouseDragged:
+	case NSEventTypeRightMouseDragged:
+	case NSEventTypeOtherMouseDragged:
+#endif
 		// we include the button that triggered the dragged event in the Held fields
 		buttonNumber = 0;
 		break;
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
+	case NSScrollWheel:
+#else
+	case NSEventTypeScrollWheel:
+#endif
+		me.DeltaX = [e scrollingDeltaX];
+		me.DeltaY = [e scrollingDeltaY];
 	}
 
 	me.Modifiers = [self parseModifiers:e];
@@ -204,7 +248,23 @@ struct uiArea {
 	if (self->libui_enabled) {
 		// and allow dragging here
 		a->dragevent = e;
-		(*(a->ah->MouseEvent))(a->ah, a, &me);
+
+		// horizontal and vertical events are split on Windows, so we split the event into two here too
+		if (me.DeltaX) {
+			delta = me.DeltaY;
+			me.DeltaY = 0;
+			(*(a->ah->MouseEvent))(a->ah, a, &me);
+			me.DeltaY = delta;
+		}
+		if (me.DeltaY) {
+			delta = me.DeltaX;
+			me.DeltaX = 0;
+			(*(a->ah->MouseEvent))(a->ah, a, &me);
+			me.DeltaX = delta;
+		}
+		if (!me.DeltaX && !me.DeltaY)
+			(*(a->ah->MouseEvent))(a->ah, a, &me);
+
 		a->dragevent = nil;
 	}
 }
@@ -214,7 +274,7 @@ struct uiArea {
 	{ \
 		[self doMouseEvent:e]; \
 	}
-mouseEvent(mouseMoved)
+mouseEvent(mouseMoved) // e.type == NSEventTypeMouseMoved
 mouseEvent(mouseDragged)
 mouseEvent(rightMouseDragged)
 mouseEvent(otherMouseDragged)
@@ -224,6 +284,19 @@ mouseEvent(otherMouseDown)
 mouseEvent(mouseUp)
 mouseEvent(rightMouseUp)
 mouseEvent(otherMouseUp)
+
+- (void)scrollWheel:(NSEvent *)e
+{
+	uiArea *a = self->libui_a;
+
+	[self doMouseEvent:e];
+	if (a->scrolling) {
+		if (!self.enclosingScrollView)
+			return;	// TODO
+		else
+			[self.enclosingScrollView scrollWheel:e]; // tnx https://developer.apple.com/forums/thread/24727?answerId=271619022#271619022
+	}
+}
 
 - (void)mouseEntered:(NSEvent *)e
 {
@@ -367,7 +440,11 @@ int uiprivSendAreaEvents(NSEvent *e)
 	areaView *view;
 
 	type = [e type];
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
 	if (type != NSKeyDown && type != NSKeyUp && type != NSFlagsChanged)
+#else
+	if (type != NSEventTypeKeyDown && type != NSEventTypeKeyUp && type != NSEventTypeFlagsChanged)
+#endif
 		return 0;
 	focused = [[e window] firstResponder];
 	if (focused == nil)
@@ -376,11 +453,23 @@ int uiprivSendAreaEvents(NSEvent *e)
 		return 0;
 	view = (areaView *) focused;
 	switch (type) {
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
 	case NSKeyDown:
+#else
+	case NSEventTypeKeyDown:
+#endif
 		return [view doKeyDown:e];
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
 	case NSKeyUp:
+#else
+	case NSEventTypeKeyUp:
+#endif
 		return [view doKeyUp:e];
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
 	case NSFlagsChanged:
+#else
+	case NSEventTypeFlagsChanged:
+#endif
 		return [view doFlagsChanged:e];
 	}
 	return 0;

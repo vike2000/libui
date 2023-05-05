@@ -19,11 +19,13 @@ static void handlerDraw(uiAreaHandler *a, uiArea *area, uiAreaDrawParams *p)
 
 static void handlerMouseEvent(uiAreaHandler *a, uiArea *area, uiAreaMouseEvent *e)
 {
-	printf("mouse (%g,%g):(%g,%g) down:%d up:%d count:%d mods:%x held:0x%" PRIX64 "\n",
+	printf("mouse (%g,%g) width:(%g,%g) scroll:(%g,%g) down:%d up:%d count:%d mods:%x held:0x%" PRIX64 "\n",
 		e->X,
 		e->Y,
 		e->AreaWidth,
 		e->AreaHeight,
+		e->DeltaX,
+		e->DeltaY,
 		(int) e->Down,
 		(int) e->Up,
 		(int) e->Count,

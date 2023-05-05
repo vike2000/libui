@@ -75,20 +75,20 @@ static void capture(uiArea *a, BOOL capturing)
 			logLastError(L"error releasing capture on drag");
 }
 
-static void areaMouseEvent(uiArea *a, int down, int  up, WPARAM wParam, LPARAM lParam)
+static void areaMouseEvent(uiArea *a, int down, int up, int wheel, WPARAM wParam, LPARAM lParam)
 {
 	uiAreaMouseEvent me;
 	int button;
-	POINT clientpt;
+	POINT clientPt;
 	RECT client;
 	BOOL inClient;
-	double xpix, ypix;
+	double xPix, yPix;
 
 	if (a->capturing) {
-		clientpt.x = GET_X_LPARAM(lParam);
-		clientpt.y = GET_Y_LPARAM(lParam);
+		clientPt.x = GET_X_LPARAM(lParam);
+		clientPt.y = GET_Y_LPARAM(lParam);
 		uiWindowsEnsureGetClientRect(a->hwnd, &client);
-		inClient = PtInRect(&client, clientpt);
+		inClient = PtInRect(&client, clientPt);
 		if (inClient && !a->inside) {
 			a->inside = TRUE;
 			(*(a->ah->MouseCrossed))(a->ah, a, 0);
@@ -100,12 +100,12 @@ static void areaMouseEvent(uiArea *a, int down, int  up, WPARAM wParam, LPARAM l
 		}
 	}
 
-	xpix = (double) GET_X_LPARAM(lParam);
-	ypix = (double) GET_Y_LPARAM(lParam);
+	xPix = (double) GET_X_LPARAM(lParam);
+	yPix = (double) GET_Y_LPARAM(lParam);
 	// these are in pixels; we need points
-	pixelsToDIP(a, &xpix, &ypix);
-	me.X = xpix;
-	me.Y = ypix;
+	pixelsToDIP(a, &xPix, &yPix);
+	me.X = xPix;
+	me.Y = yPix;
 	if (a->scrolling) {
 		me.X += a->hscrollpos;
 		me.Y += a->vscrollpos;
@@ -117,7 +117,7 @@ static void areaMouseEvent(uiArea *a, int down, int  up, WPARAM wParam, LPARAM l
 	me.Up = up;
 	me.Count = 0;
 	if (me.Down != 0)
-		// GetMessageTime() returns LONG and GetDoubleClckTime() returns UINT, which are int32 and uint32, respectively, but we don't need to worry about the signedness because for the same bit widths and two's complement arithmetic, s1-s2 == u1-u2 if bits(s1)==bits(s2) and bits(u1)==bits(u2) (and Windows requires two's complement: http://blogs.msdn.com/b/oldnewthing/archive/2005/05/27/422551.aspx)
+		// GetMessageTime() returns LONG and GetDoubleClickTime() returns UINT, which are int32 and uint32, respectively, but we don't need to worry about the signedness because for the same bit widths and two's complement arithmetic, s1-s2 == u1-u2 if bits(s1)==bits(s2) and bits(u1)==bits(u2) (and Windows requires two's complement: http://blogs.msdn.com/b/oldnewthing/archive/2005/05/27/422551.aspx)
 		// signedness isn't much of an issue for these calls anyway because http://stackoverflow.com/questions/24022225/what-are-the-sign-extension-rules-for-calling-windows-api-functions-stdcall-t and that we're only using unsigned values (think back to how you (didn't) handle signedness in assembly language) AND because of the above AND because the statistics below (time interval and width/height) really don't make sense if negative
 		// GetSystemMetrics() returns int, which is int32
 		me.Count = uiprivClickCounterClick(&(a->cc), me.Down,
@@ -150,6 +150,13 @@ static void areaMouseEvent(uiArea *a, int down, int  up, WPARAM wParam, LPARAM l
 	// only release capture when all buttons released
 	if (me.Up != 0 && me.Held1To64 == 0)
 		capture(a, FALSE);
+
+	me.DeltaX = 0;
+	me.DeltaY = 0;
+	if (wheel < 0)
+		me.DeltaX = GET_WHEEL_DELTA_WPARAM(wParam);
+	else if (wheel > 0)
+		me.DeltaY = GET_WHEEL_DELTA_WPARAM(wParam);
 
 	(*(a->ah->MouseEvent))(a->ah, a, &me);
 }
@@ -330,7 +337,7 @@ BOOL areaDoEvents(uiArea *a, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT *l
 		return TRUE;
 	case WM_MOUSEMOVE:
 		onMouseEntered(a);
-		areaMouseEvent(a, 0, 0, wParam, lParam);
+		areaMouseEvent(a, 0, 0, 0, wParam, lParam);
 		*lResult = 0;
 		return TRUE;
 	case WM_MOUSELEAVE:
@@ -339,44 +346,52 @@ BOOL areaDoEvents(uiArea *a, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT *l
 		return TRUE;
 	case WM_LBUTTONDOWN:
 		SetFocus(a->hwnd);
-		areaMouseEvent(a, 1, 0, wParam, lParam);
+		areaMouseEvent(a, 1, 0, 0, wParam, lParam);
 		*lResult = 0;
 		return TRUE;
 	case WM_LBUTTONUP:
-		areaMouseEvent(a, 0, 1, wParam, lParam);
+		areaMouseEvent(a, 0, 1, 0, wParam, lParam);
 		*lResult = 0;
 		return TRUE;
 	case WM_MBUTTONDOWN:
 		SetFocus(a->hwnd);
-		areaMouseEvent(a, 2, 0, wParam, lParam);
+		areaMouseEvent(a, 2, 0, 0, wParam, lParam);
 		*lResult = 0;
 		return TRUE;
 	case WM_MBUTTONUP:
-		areaMouseEvent(a, 0, 2, wParam, lParam);
+		areaMouseEvent(a, 0, 2, 0, wParam, lParam);
 		*lResult = 0;
 		return TRUE;
 	case WM_RBUTTONDOWN:
 		SetFocus(a->hwnd);
-		areaMouseEvent(a, 3, 0, wParam, lParam);
+		areaMouseEvent(a, 3, 0, 0, wParam, lParam);
 		*lResult = 0;
 		return TRUE;
 	case WM_RBUTTONUP:
-		areaMouseEvent(a, 0, 3, wParam, lParam);
+		areaMouseEvent(a, 0, 3, 0, wParam, lParam);
 		*lResult = 0;
 		return TRUE;
 	case WM_XBUTTONDOWN:
 		SetFocus(a->hwnd);
 		// values start at 1; we want them to start at 4
 		areaMouseEvent(a,
-			GET_XBUTTON_WPARAM(wParam) + 3, 0,
+			GET_XBUTTON_WPARAM(wParam) + 3, 0, 0,
 			GET_KEYSTATE_WPARAM(wParam), lParam);
 		*lResult = TRUE;	// XBUTTON messages are different!
 		return TRUE;
 	case WM_XBUTTONUP:
 		areaMouseEvent(a,
-			0, GET_XBUTTON_WPARAM(wParam) + 3,
+			0, GET_XBUTTON_WPARAM(wParam) + 3, 0,
 			GET_KEYSTATE_WPARAM(wParam), lParam);
 		*lResult = TRUE;	// XBUTTON messages are different!
+		return TRUE;
+	case WM_MOUSEWHEEL:
+		areaMouseEvent(a, 0, 0, 1, wParam, lParam);
+		*lResult = 0;
+		return TRUE;
+	case WM_MOUSEHWHEEL:
+		areaMouseEvent(a, 0, 0, -1, wParam, lParam);
+		*lResult = 0;
 		return TRUE;
 	case WM_CAPTURECHANGED:
 		if (a->capturing) {

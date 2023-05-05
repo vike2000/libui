@@ -116,7 +116,7 @@ static void handlerMouseEvent(uiAreaHandler *a, uiArea *area, uiAreaMouseEvent *
 	resize(ta.bottomleftresize.in, uiWindowResizeEdgeBottomLeft)
 	resize(ta.bottomrightresize.in, uiWindowResizeEdgeBottomRight)
 	if (ta.close.in) {
-		// TODO
+		uiControlDestroy(uiControlParent(uiControlParent(uiControl(area)))); // via uiBox
 		return;
 	}
 }

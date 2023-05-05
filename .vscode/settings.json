@@ -1,0 +1,33 @@
+{
+	"cSpell.words": [
+		"CXDOUBLECLK",
+		"CYDOUBLECLK",
+		"genericize",
+		"GLFW",
+		"hscrollpos",
+		"hwnd",
+		"LBUTTON",
+		"LBUTTONDOWN",
+		"LBUTTONUP",
+		"LCONTROL",
+		"LMENU",
+		"LPARAM",
+		"LRESULT",
+		"LWIN",
+		"MBUTTON",
+		"MBUTTONDOWN",
+		"MBUTTONUP",
+		"MOUSEHWHEEL",
+		"RBUTTON",
+		"RBUTTONDOWN",
+		"RBUTTONUP",
+		"RCONTROL",
+		"RMENU",
+		"RWIN",
+		"uipriv",
+		"vscrollpos",
+		"XBUTTON",
+		"XBUTTONDOWN",
+		"XBUTTONUP"
+	]
+}

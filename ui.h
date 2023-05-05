@@ -1074,7 +1074,11 @@ struct uiAreaMouseEvent {
 	uiModifiers Modifiers;
 
 	uint64_t Held1To64;
+
+	double DeltaX;
+	double DeltaY;
 };
+#define LIBUI_HAS_AREA_MOUSE_EVENT_DELTAS
 
 _UI_ENUM(uiExtKey) {
 	uiExtKeyEscape = 1,

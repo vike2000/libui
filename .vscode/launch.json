@@ -1,0 +1,27 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Launch tester in lldb with macports",
+			"request": "launch", "type": "lldb",
+			"preLaunchTask": "build with macports",
+			"cwd": "${workspaceFolder}",
+			"env": {
+//				"EXAMPLE": "example",
+			},
+			"program": "${workspaceFolder}/build/meson-out/tester",
+			"args": [],
+		},
+		{
+			"name": "Launch tester in cppdbg with macports",
+			"request": "launch", "type": "cppdbg", "MIMode": "lldb",
+			"preLaunchTask": "build with macports",
+			"cwd": "${workspaceFolder}",
+			"environment": [
+//				{"name": "EXAMPLE", "value": "example"},
+			],
+			"program": "${workspaceFolder}/build/meson-out/tester",
+			"args": [],
+		},
+	]
+}
